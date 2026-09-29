@@ -42,10 +42,11 @@ flowchart LR
   * Acoustic Shadow Penumbra ($S_{\text{shadow}}$)
   * Seabed Scour / Environmental Context ($S_{\text{context}}$)
 * **Mathematical Reliability Score ($R_{\text{fusion}}$)** calibrated per debris class:
-  $$\text{Plane / Wreck}: R = 100 \times (0.20 \cdot C_{\text{AI}} + 0.30 \cdot S_{\text{shape}} + 0.30 \cdot S_{\text{shadow}} + 0.20 \cdot S_{\text{context}})$$
-  $$\text{Pipeline}: R = 100 \times (0.15 \cdot C_{\text{AI}} + 0.40 \cdot S_{\text{shape}} + 0.30 \cdot S_{\text{shadow}} + 0.15 \cdot S_{\text{context}})$$
-  $$\text{Ghostnet}: R = 100 \times (0.20 \cdot C_{\text{AI}} + 0.40 \cdot S_{\text{shape}} + 0.40 \cdot S_{\text{context}}) \quad (\text{Shadow } W=0)$$
-  $$\text{Crab Pot}: R = 100 \times (0.15 \cdot C_{\text{AI}} + 0.35 \cdot S_{\text{shape}} + 0.30 \cdot S_{\text{shadow}} + 0.20 \cdot S_{\text{context}})$$
+  $$\text{Shipwreck}: R = 100 \times (0.50 \cdot C_{\text{AI}} + 0.25 \cdot S_{\text{shape}} + 0.15 \cdot S_{\text{shadow}} + 0.10 \cdot S_{\text{context}})$$
+  $$\text{Crab Pot}: R = 100 \times (0.50 \cdot C_{\text{AI}} + 0.25 \cdot S_{\text{shape}} + 0.20 \cdot S_{\text{shadow}} + 0.05 \cdot S_{\text{context}})$$
+  $$\text{Plane}: R = 100 \times (0.50 \cdot C_{\text{AI}} + 0.25 \cdot S_{\text{shape}} + 0.15 \cdot S_{\text{shadow}} + 0.10 \cdot S_{\text{context}})$$
+  $$\text{Pipe}: R = 100 \times (0.50 \cdot C_{\text{AI}} + 0.30 \cdot S_{\text{shape}} + 0.10 \cdot S_{\text{shadow}} + 0.10 \cdot S_{\text{context}})$$
+  $$\text{Ghost Net}: R = 100 \times (0.50 \cdot C_{\text{AI}} + 0.10 \cdot S_{\text{shape}} + 0.40 \cdot S_{\text{context}}) \quad (\text{Shadow } W=0)$$
 
 ### Layer 04: Human Review & Anomaly Inspection
 * Focused verification queue dedicated to novel anomaly candidate targets (`ANO-001`).

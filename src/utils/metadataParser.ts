@@ -360,6 +360,12 @@ export function parseJSONMetadata(content: string): {
       data.Origin ||
       (data.latitude && data.longitude ? `${data.latitude}°N, ${data.longitude}°E` : undefined);
 
+    surveySummary.vessel = data.vessel || data.vessel_name || data.ship;
+    surveySummary.operator = data.operator || data.survey_operator || data.agency;
+    surveySummary.region = data.region || data.area;
+    surveySummary.frequency = data.frequency || data.operatingFrequency;
+    surveySummary.captureDate = data.captureDate || data.surveyWindow || data.date;
+
     // Also check if images are nested in JSON
     const imagesList = data.images || raw.images || data.frames_data;
     if (Array.isArray(imagesList)) {
@@ -400,6 +406,10 @@ export async function parseMetadataFile(file: File): Promise<{
     sensor: surveySummary.sensor || DEFAULT_MUMBAI_SURVEY.sensor,
     origin: surveySummary.origin || DEFAULT_MUMBAI_SURVEY.origin,
     vessel: surveySummary.vessel || DEFAULT_MUMBAI_SURVEY.vessel,
+    operator: surveySummary.operator || DEFAULT_MUMBAI_SURVEY.operator,
+    region: surveySummary.region || DEFAULT_MUMBAI_SURVEY.region,
+    frequency: surveySummary.frequency || DEFAULT_MUMBAI_SURVEY.frequency,
+    captureDate: surveySummary.captureDate || DEFAULT_MUMBAI_SURVEY.captureDate,
     isDemo: false,
   };
 

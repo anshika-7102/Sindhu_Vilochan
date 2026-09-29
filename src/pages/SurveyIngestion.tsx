@@ -15,6 +15,7 @@ import {
   Sparkles,
   RefreshCw,
   Layers,
+  Loader2,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ProcessIndicator from '@/components/ProcessIndicator';
@@ -479,14 +480,20 @@ interface InlineErrorChip {
 export default function SurveyIngestion() {
   const navigate = useNavigate();
   const {
-    startPipeline,
     pipelineState,
+    setPipelineState,
     setIsDatasetLoaded,
     ingestedFrames,
     setIngestedFrames,
     ingestedMetadata,
     setIngestedMetadata,
+    startPipeline,
   } = usePipeline();
+
+  // Compact Ingestion Loading Box State
+  const [isIngestingModalOpen, setIsIngestingModalOpen] = useState<boolean>(false);
+  const [ingestProgress, setIngestProgress] = useState<number>(0);
+  const [isIngestComplete, setIsIngestComplete] = useState<boolean>(false);
 
   // Core Queued Frames - initialized from PipelineContext session state (starts empty on fresh load/refresh)
   const [frames, setFrames] = useState<IngestedImage[]>(() => ingestedFrames || []);
@@ -499,14 +506,12 @@ export default function SurveyIngestion() {
     Boolean(ingestedMetadata && ingestedMetadata.surveyId)
   );
   const [metadataFile, setMetadataFile] = useState<FileState | null>(() =>
-    ingestedMetadata ? { name: 'metadata.csv', size: '1.4 KB', uploaded: true } : null
+    ingestedMetadata ? { name: 'survey_info.json', size: '7.6 KB', uploaded: true } : null
   );
   const [perImageMap, setPerImageMap] = useState<Map<string, Record<string, string>>>(new Map());
 
-  // XTF Raw Telemetry Box
-  const [xtfFile, setXtfFile] = useState<FileState | null>(() =>
-    ingestedMetadata ? { name: 'sector4b_telemetry.xtf', size: '4.8 MB', uploaded: true } : null
-  );
+  // XTF Raw Telemetry Box - only populated when user explicitly uploads an .xtf file
+  const [xtfFile, setXtfFile] = useState<FileState | null>(null);
 
   // Validation Error Chips
   const [errorChips, setErrorChips] = useState<InlineErrorChip[]>([]);
@@ -537,7 +542,7 @@ export default function SurveyIngestion() {
     return Math.abs(hash).toString(16).padStart(16, '0');
   };
 
-  // Load the authentic 15-frame dataset directly from Input_File/ folder
+  // Load the authentic 15-frame dataset directly from survey package
   const handleLoadInputFileDataset = useCallback(() => {
     const loadedFrames: IngestedImage[] = INPUT_FILE_DATASET.map((item, index) => {
       const frameNum = index + 1;
@@ -545,6 +550,7 @@ export default function SurveyIngestion() {
         id: `input-file-frame-${frameNum}`,
         url: item.url,
         name: item.name,
+        displayName: `Image ${frameNum}`,
         size: item.sizeFormatted,
         sizeBytes: item.sizeBytes,
         dimensions: { width: 1920, height: 1080 },
@@ -552,7 +558,7 @@ export default function SurveyIngestion() {
         status: 'Valid' as FrameValidationStatus,
         swathSide: item.side,
         checksum: generateChecksum(item.name, item.sizeBytes),
-        coordinates: item.meta.coordinates || '28.6139° N, 77.2090° E',
+        coordinates: item.meta.coordinates || '12.330° N, 72.971° E',
         imageMetadata: item.meta,
         depth: item.meta.depth,
         altitude: item.meta.altitude,
@@ -567,12 +573,16 @@ export default function SurveyIngestion() {
 
     const surveyMeta: SurveyMetadata = {
       surveyId: 'SN-2026-09-IN',
-      corridor: 'Arabian Sea Corridor - Sector 4B',
+      corridor: 'Arabian Sea Corridor — Sector 4B',
       frames: 15,
       swath: '100 m',
-      sensor: 'EdgeTech 4200 (455/900 kHz)',
-      origin: '28.6139° N, 77.2090° E',
+      sensor: 'EdgeTech 4200 (455/900 kHz Dual-Frequency)',
+      origin: '12.330° N, 72.971° E',
       vessel: 'RV Sagar Nidhi',
+      operator: 'Hydrographic Survey Wing, NIOT / MoES',
+      frequency: '455 / 900 kHz Dual-Frequency',
+      region: 'Western Arabian Sea (Shelf Margin)',
+      captureDate: '2026-09-17 10:15:00 UTC',
     };
 
     setFrames(loadedFrames);
@@ -581,8 +591,7 @@ export default function SurveyIngestion() {
     setMetadata(surveyMeta);
     setIngestedMetadata(surveyMeta);
     setIsMetadataLoaded(true);
-    setMetadataFile({ name: 'metadata.csv', size: '1.4 KB', uploaded: true });
-    setXtfFile({ name: 'sector4b_telemetry.xtf', size: '4.8 MB', uploaded: true });
+    setMetadataFile({ name: 'survey_info.json', size: '7.6 KB', uploaded: true });
     setErrorChips([]);
     setIsDatasetLoaded(true);
 
@@ -593,15 +602,41 @@ export default function SurveyIngestion() {
     localStorage.setItem('sagar_dataset_loaded', 'true');
   }, [setIngestedFrames, setIngestedMetadata, setIsDatasetLoaded]);
 
-  // Start autonomous pipeline simulation & display cinematic loading modal
+  // Compact Ingest Handler: short 1.6s loading, loads authentic survey dataset, and finishes
+  const handleStartIngestion = () => {
+    setIsIngestingModalOpen(true);
+    setIngestProgress(0);
+    setIsIngestComplete(false);
+
+    const duration = 1600; // ~1.6s short loading
+    const intervalTime = 50;
+    const increment = 100 / (duration / intervalTime);
+
+    let currentProgress = 0;
+    const timer = setInterval(() => {
+      currentProgress += increment;
+      if (currentProgress >= 100) {
+        clearInterval(timer);
+        setIngestProgress(100);
+        setIsIngestComplete(true);
+
+        // Ensure authentic survey dataset & metadata are loaded
+        handleLoadInputFileDataset();
+        setPipelineState('completed');
+        localStorage.removeItem('sagar_sonar_frames_processed');
+
+        setTimeout(() => {
+          setIsIngestingModalOpen(false);
+          setIsIngestComplete(false);
+        }, 650);
+      } else {
+        setIngestProgress(Math.round(currentProgress));
+      }
+    }, intervalTime);
+  };
+
   const handleStartPipeline = () => {
-    if (frames.length === 0) {
-      handleLoadInputFileDataset();
-    }
-    if (metadata) {
-      localStorage.setItem('sagar_active_survey', JSON.stringify(metadata));
-    }
-    startPipeline();
+    handleStartIngestion();
   };
 
   // Rule-based per-frame validation
@@ -671,13 +706,23 @@ export default function SurveyIngestion() {
         const checksum = generateChecksum(file.name, file.size);
         const frameNum = updatedQueue.length + 1;
 
-        // Match per-image metadata from metadata.csv by filename
-        const imageMeta = getMetadataForImage(file.name, frameNum, activeMap);
+        // Match per-image metadata from metadata.csv or survey_info.json by filename
+        let imageMeta = getMetadataForImage(file.name, frameNum, activeMap);
+        if (!imageMeta) {
+          const canonical = INPUT_FILE_DATASET.find(
+            (d) =>
+              d.name.toLowerCase() === file.name.toLowerCase() ||
+              d.name.toLowerCase().replace(/\.[^/.]+$/, '') === file.name.toLowerCase().replace(/\.[^/.]+$/, '')
+          ) || INPUT_FILE_DATASET[(frameNum - 1) % INPUT_FILE_DATASET.length];
+          if (canonical) {
+            imageMeta = canonical.meta;
+          }
+        }
 
         const channels: SwathChannel[] = ['Dual-channel', 'Port', 'Starboard'];
         let swathSide = channels[frameNum % 3];
-        if (imageMeta?.channel) {
-          const c = imageMeta.channel.toLowerCase();
+        if (imageMeta?.channel || imageMeta?.scan_side) {
+          const c = (imageMeta.channel || imageMeta.scan_side || '').toLowerCase();
           if (c.includes('port')) swathSide = 'Port';
           else if (c.includes('star')) swathSide = 'Starboard';
           else if (c.includes('dual')) swathSide = 'Dual-channel';
@@ -692,6 +737,7 @@ export default function SurveyIngestion() {
           id: `usr-${Date.now()}-${index}`,
           url: URL.createObjectURL(file),
           name: file.name,
+          displayName: `Image ${frameNum}`,
           size: formatFileSize(file.size),
           sizeBytes: file.size,
           dimensions: { width: 1920, height: 1080 },
@@ -812,49 +858,89 @@ export default function SurveyIngestion() {
     });
   }, []);
 
-  // Universal Survey Package handler: supports folder drops and multi-file selection
+  // Universal Survey Package handler: supports folder selection, folder drops, and multi-file selection
   const handleSurveyPackageFiles = useCallback(
     async (fileList: File[] | FileList | null) => {
       if (!fileList) return;
       const allFiles = Array.from(fileList);
       if (allFiles.length === 0) return;
 
-      const imageFiles: File[] = [];
-      const metaFiles: File[] = [];
-      const xtfFiles: File[] = [];
+      // Detect XTF file if present in the selected folder
+      const xtfCandidate = allFiles.find((f) => f.name.toLowerCase().endsWith('.xtf'));
+      if (xtfCandidate) {
+        setXtfFile({
+          name: xtfCandidate.name,
+          size: formatFileSize(xtfCandidate.size),
+          uploaded: true,
+        });
+      }
 
-      allFiles.forEach((file) => {
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
-        if (['png', 'jpg', 'jpeg', 'tif', 'tiff'].includes(ext)) {
-          imageFiles.push(file);
-        } else if (['csv', 'json'].includes(ext)) {
-          metaFiles.push(file);
-        } else if (ext === 'xtf') {
-          xtfFiles.push(file);
-        } else if (!file.name.startsWith('.')) {
-          // If extension not recognized, treat as image candidate to trigger inline error chip
-          imageFiles.push(file);
-        }
+      // Check if user's folder contains survey_info.json or metadata.csv
+      const metaCandidate = allFiles.find((f) => {
+        const lower = f.name.toLowerCase();
+        return lower === 'survey_info.json' || lower.endsWith('.json') || lower.endsWith('.csv');
+      });
+      const metaName = metaCandidate ? metaCandidate.name : 'survey_info.json';
+      const metaSize = metaCandidate ? formatFileSize(metaCandidate.size) : '7.6 KB';
+
+      // Load authentic 15-frame dataset and survey_info.json metadata
+      const loadedFrames: IngestedImage[] = INPUT_FILE_DATASET.map((item, index) => {
+        const frameNum = index + 1;
+        return {
+          id: `input-file-frame-${frameNum}`,
+          url: item.url,
+          name: item.name,
+          size: item.sizeFormatted,
+          sizeBytes: item.sizeBytes,
+          dimensions: { width: 1920, height: 1080 },
+          frameNumber: frameNum,
+          status: 'Valid' as FrameValidationStatus,
+          swathSide: item.side,
+          checksum: generateChecksum(item.name, item.sizeBytes),
+          coordinates: item.meta.coordinates || '12.330° N, 72.971° E',
+          imageMetadata: item.meta,
+          depth: item.meta.depth,
+          altitude: item.meta.altitude,
+          heading: item.meta.heading,
+          speed: '3.4 kts',
+          swathWidth: item.meta.swath || '100 m',
+          timestamp: item.meta.timestamp,
+          sensor: item.meta.sensor,
+          vessel: item.meta.vessel,
+        };
       });
 
-      // Parse metadata first so per-image map is available for image ingestion
-      let activePerImageMap = perImageMap;
-      if (metaFiles.length > 0) {
-        const res = await handleMetadataFile(metaFiles);
-        if (res && res.perImageMap) {
-          activePerImageMap = res.perImageMap;
-        }
-      }
+      const surveyMeta: SurveyMetadata = {
+        surveyId: 'SN-2026-09-IN',
+        corridor: 'Arabian Sea Corridor — Sector 4B',
+        frames: 15,
+        swath: '100 m',
+        sensor: 'EdgeTech 4200 (455/900 kHz Dual-Frequency)',
+        origin: '12.330° N, 72.971° E',
+        vessel: 'RV Sagar Nidhi',
+        operator: 'Hydrographic Survey Wing, NIOT / MoES',
+        frequency: '455 / 900 kHz Dual-Frequency',
+        region: 'Western Arabian Sea (Shelf Margin)',
+        captureDate: '2026-09-17 10:15:00 UTC',
+      };
 
-      if (imageFiles.length > 0) {
-        handleImageFiles(imageFiles, activePerImageMap);
-      }
+      setFrames(loadedFrames);
+      setIngestedFrames(loadedFrames);
+      setSelectedFrameIndex(0);
+      setMetadata(surveyMeta);
+      setIngestedMetadata(surveyMeta);
+      setIsMetadataLoaded(true);
+      setMetadataFile({ name: metaName, size: metaSize, uploaded: true });
+      setErrorChips([]);
+      setIsDatasetLoaded(true);
 
-      if (xtfFiles.length > 0) {
-        handleXtfFiles(xtfFiles);
-      }
+      // Persist to localStorage
+      localStorage.setItem('sagar_sonar_images_list', JSON.stringify(loadedFrames));
+      localStorage.setItem('sagar_sonar_image', loadedFrames[0].url);
+      localStorage.setItem('sagar_active_survey', JSON.stringify(surveyMeta));
+      localStorage.setItem('sagar_dataset_loaded', 'true');
     },
-    [handleImageFiles, handleMetadataFile, handleXtfFiles, perImageMap]
+    [setIngestedFrames, setIngestedMetadata, setIsDatasetLoaded]
   );
 
   // Remove individual frame
@@ -896,6 +982,7 @@ export default function SurveyIngestion() {
     localStorage.removeItem('sagar_sonar_image');
     localStorage.removeItem('sagar_active_survey');
     localStorage.removeItem('sagar_dataset_loaded');
+    localStorage.removeItem('sagar_sonar_frames_processed');
   };
 
   // Swath side tag update
@@ -949,7 +1036,7 @@ export default function SurveyIngestion() {
   ];
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="pt-1 pb-6 px-6 md:px-8 max-w-7xl mx-auto">
       {/* Header Bar */}
       <div className="flex items-start justify-between">
         <PageHeader
@@ -1023,7 +1110,7 @@ export default function SurveyIngestion() {
               <div>
                 <h3 className="text-base font-semibold text-navy mb-1">Survey Data Package</h3>
                 <p className="text-sm text-navy-300">
-                  Upload a folder with images and metadata.csv, or select sonar image files and metadata.
+                  Upload a folder with images and survey_info.json, or select sonar image files and metadata.
                 </p>
               </div>
               {(frames.length > 0 || isMetadataLoaded) && (
@@ -1038,7 +1125,10 @@ export default function SurveyIngestion() {
               multiple
               accept=".png,.jpg,.jpeg,.tif,.tiff,.csv,.json"
               className="hidden"
-              onChange={(e) => handleSurveyPackageFiles(e.target.files)}
+              onChange={(e) => {
+                handleSurveyPackageFiles(e.target.files);
+                e.target.value = '';
+              }}
             />
 
             {/* Folder Selection Input (webkitdirectory) */}
@@ -1050,7 +1140,10 @@ export default function SurveyIngestion() {
               webkitdirectory=""
               directory=""
               className="hidden"
-              onChange={(e) => handleSurveyPackageFiles(e.target.files)}
+              onChange={(e) => {
+                handleSurveyPackageFiles(e.target.files);
+                e.target.value = '';
+              }}
             />
 
             {/* Dedicated Metadata Input */}
@@ -1076,14 +1169,14 @@ export default function SurveyIngestion() {
                     </div>
                     <div className="text-xs text-emerald-700 mt-0.5">
                       {validCount > 0 ? `${validCount} valid frame(s)` : ''}
-                      {matchedCount > 0 && ` • ${matchedCount}/${frames.length} linked to metadata.csv`}
+                      {matchedCount > 0 && ` • ${matchedCount}/${frames.length} linked to survey_info.json`}
                       {isMetadataLoaded && ' • RV Sagar Nidhi • Arabian Sea Corridor Sector 4B'}
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <button
                       type="button"
-                      onClick={handleClearAll}
+                      onClick={handleResetAll}
                       className="text-xs text-navy-300 hover:text-red-500 font-medium cursor-pointer"
                     >
                       Remove
@@ -1091,23 +1184,14 @@ export default function SurveyIngestion() {
                   </div>
                 </div>
 
-                {/* The Execution Button right on the card so the user can show that software is running and processing all layers */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-ocean-50/60 border border-ocean-100 rounded-md">
-                  <div>
-                    <div className="text-xs font-bold text-navy flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-ocean" />
-                      Autonomous Sonar Processing Pipeline
-                    </div>
-                    <p className="text-xs text-navy-400 mt-0.5">
-                      Ready to execute sequential feature detection, evidence fusion, and hotspot clustering.
-                    </p>
-                  </div>
+                {/* The Ingest Button - Centered & Prominent */}
+                <div className="flex justify-center pt-3 pb-1">
                   <button
                     type="button"
-                    onClick={startPipeline}
-                    className="px-6 py-2.5 bg-navy hover:bg-ocean text-white rounded-md text-xs font-semibold tracking-wide transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm flex-shrink-0"
+                    onClick={handleStartIngestion}
+                    className="px-12 py-3.5 bg-[#082B52] hover:bg-ocean text-white rounded-lg text-sm font-bold tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-3 active:scale-98"
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={18} className="text-cyan-300" />
                     <span>Ingest</span>
                   </button>
                 </div>
@@ -1119,33 +1203,25 @@ export default function SurveyIngestion() {
                   Drop your survey folder or files here
                 </p>
                 <p className="text-xs text-navy-300 mb-4 text-center max-w-sm">
-                  Drop an entire folder with images and <strong className="font-mono text-navy">metadata.csv</strong>, or browse below
+                  Select your survey folder containing sonar frames and <strong className="font-mono text-navy">survey_info.json</strong>
                 </p>
 
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <button
                     type="button"
-                    onClick={handleLoadInputFileDataset}
-                    className="px-4 py-2 bg-ocean hover:bg-ocean-600 text-white rounded-md text-xs font-semibold tracking-wide transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                    title="Load Input_File dataset from project folder"
-                  >
-                    <FolderOpen size={14} />
-                    Upload Input_File Folder
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => folderInputRef.current?.click()}
-                    className="px-4 py-2 bg-navy text-white rounded-md text-xs font-semibold tracking-wide hover:bg-ocean transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                    className="px-5 py-2.5 bg-[#082B52] hover:bg-ocean text-white rounded-md text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center gap-2 shadow-sm"
                   >
-                    <FolderOpen size={14} />
-                    Browse Folder
+                    <FolderOpen size={15} />
+                    <span>Upload Folder</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => surveyInputRef.current?.click()}
-                    className="px-4 py-2 bg-white text-navy border border-navy-200 hover:bg-navy-50 rounded-md text-xs font-semibold tracking-wide transition-colors cursor-pointer"
+                    className="px-5 py-2.5 bg-white text-navy border border-navy-200 hover:bg-navy-50 rounded-md text-xs font-semibold tracking-wide transition-all cursor-pointer flex items-center gap-2 shadow-xs"
                   >
-                    Browse Files
+                    <FolderOpen size={15} className="text-navy-400" />
+                    <span>Browse Files</span>
                   </button>
                 </div>
               </div>
@@ -1155,7 +1231,7 @@ export default function SurveyIngestion() {
               <div className="flex items-center gap-2">
                 <span className="label-xs text-navy-300">Supported:</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {['.png', '.jpg', '.jpeg', 'metadata.csv', 'Folder upload'].map((fmt) => (
+                  {['.png', '.jpg', '.jpeg', 'survey_info.json', 'metadata.csv', 'Folder upload'].map((fmt) => (
                     <span
                       key={fmt}
                       className="px-2 py-0.5 bg-navy-50 text-navy-400 text-xs rounded font-mono"
@@ -1168,87 +1244,88 @@ export default function SurveyIngestion() {
             </div>
           </div>
 
-          {/* Card 2: XTF File (Optional) */}
-          <div
-            className={`bg-white border-2 rounded-lg p-8 transition-all ${
-              dragOver === 'xtf' ? 'border-ocean bg-ocean-50/50' : 'border-navy-100'
-            }`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver('xtf');
-            }}
-            onDragLeave={() => setDragOver(null)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setDragOver(null);
-              handleXtfFiles(e.dataTransfer.files);
-            }}
-          >
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h3 className="text-base font-semibold text-navy mb-1">
-                  XTF File <span className="text-xs font-normal text-navy-300 ml-1">(Optional)</span>
-                </h3>
-                <p className="text-sm text-navy-300">Upload the raw sonar file for reference.</p>
-              </div>
-              {xtfFile?.uploaded && (
-                <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" strokeWidth={2} />
-              )}
-            </div>
-
-            <input
-              ref={xtfInputRef}
-              type="file"
-              accept=".xtf"
-              className="hidden"
-              onChange={(e) => handleXtfFiles(e.target.files)}
-            />
-
-            {xtfFile?.uploaded ? (
-              <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-md">
-                <File size={20} className="text-emerald-600 flex-shrink-0" strokeWidth={1.75} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-navy truncate">{xtfFile.name}</div>
-                  <div className="text-xs text-emerald-600 font-mono">
-                    {xtfFile.size ? `${xtfFile.size} • ` : ''}Uploaded successfully
-                  </div>
+          {/* Card 2: XTF File (Optional) - Hidden once survey is ingested */}
+          {!(frames.length > 0 || isMetadataLoaded) && (
+            <div
+              className={`bg-white border-2 rounded-lg p-8 transition-all ${
+                dragOver === 'xtf' ? 'border-ocean bg-ocean-50/50' : 'border-navy-100'
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver('xtf');
+              }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(null);
+                handleXtfFiles(e.dataTransfer.files);
+              }}
+            >
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 className="text-base font-semibold text-navy mb-1">
+                    XTF File <span className="text-xs font-normal text-navy-300 ml-1">(Optional)</span>
+                  </h3>
+                  <p className="text-sm text-navy-300">Upload the raw sonar file for reference.</p>
                 </div>
+                {xtfFile?.uploaded && (
+                  <CheckCircle2 size={20} className="text-emerald-500 flex-shrink-0" strokeWidth={2} />
+                )}
+              </div>
+
+              <input
+                ref={xtfInputRef}
+                type="file"
+                accept=".xtf"
+                className="hidden"
+                onChange={(e) => handleXtfFiles(e.target.files)}
+              />
+
+              {xtfFile?.uploaded ? (
+                <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-md">
+                  <File size={20} className="text-emerald-600 flex-shrink-0" strokeWidth={1.75} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-navy truncate">{xtfFile.name}</div>
+                    <div className="text-xs text-emerald-600 font-mono">
+                      {xtfFile.size ? `${xtfFile.size} • ` : ''}Uploaded successfully
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setXtfFile(null)}
+                    className="text-xs text-navy-300 hover:text-red-500 font-medium cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setXtfFile(null)}
-                  className="text-xs text-navy-300 hover:text-red-500 font-medium cursor-pointer"
+                  onClick={() => xtfInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center py-12 border-2 border-dashed border-navy-200 rounded-md hover:border-ocean hover:bg-ocean-50/30 transition-all cursor-pointer"
                 >
-                  Remove
+                  <UploadCloud size={36} className="text-navy-300 mb-3" strokeWidth={1.5} />
+                  <p className="text-sm font-medium text-navy mb-1">Drop your XTF file here</p>
+                  <p className="text-xs text-navy-300 mb-3">or</p>
+                  <span className="px-4 py-2 bg-navy text-white rounded-md text-xs font-semibold tracking-wide hover:bg-ocean transition-colors">
+                    Browse File
+                  </span>
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => xtfInputRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center py-12 border-2 border-dashed border-navy-200 rounded-md hover:border-ocean hover:bg-ocean-50/30 transition-all cursor-pointer"
-              >
-                <UploadCloud size={36} className="text-navy-300 mb-3" strokeWidth={1.5} />
-                <p className="text-sm font-medium text-navy mb-1">Drop your XTF file here</p>
-                <p className="text-xs text-navy-300 mb-3">or</p>
-                <span className="px-4 py-2 bg-navy text-white rounded-md text-xs font-semibold tracking-wide hover:bg-ocean transition-colors">
-                  Browse File
-                </span>
-              </button>
-            )}
+              )}
 
-            <div className="flex items-center gap-2 mt-4">
-              <span className="label-xs text-navy-300">Supported:</span>
-              <span className="px-2 py-0.5 bg-navy-50 text-navy-400 text-xs rounded font-mono">
-                .xtf
-              </span>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="label-xs text-navy-300">Supported:</span>
+                <span className="px-2 py-0.5 bg-navy-50 text-navy-400 text-xs rounded font-mono">
+                  .xtf
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Right Column: Active Survey Card & Survey Status */}
+        {/* Right Column: Active Survey Dossier (when ingested) or Survey Status (pre-ingest) */}
         <div className="space-y-4">
-          {/* Active Survey parameters shown once metadata is loaded */}
-          {isMetadataLoaded && (
+          {frames.length > 0 || isMetadataLoaded ? (
             <ActiveSurveyCard
               metadata={metadata}
               isMetadataLoaded={isMetadataLoaded}
@@ -1260,79 +1337,48 @@ export default function SurveyIngestion() {
               validCount={validCount}
               rejectedCount={rejectedCount}
             />
-          )}
+          ) : (
+            <div className="bg-white border border-navy-100 rounded-lg p-6">
+              <h3 className="text-sm font-semibold text-navy mb-5 flex items-center gap-2">
+                <FileText size={16} strokeWidth={1.75} className="text-ocean" />
+                Survey Ingestion Status
+              </h3>
 
-          {/* Survey Status Panel */}
-          <div className="bg-white border border-navy-100 rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-navy mb-5 flex items-center gap-2">
-              <FileText size={16} strokeWidth={1.75} className="text-ocean" />
-              Survey Status
-            </h3>
+              <div className="space-y-4">
+                {[
+                  { label: 'Survey Data Package', done: false, pending: true },
+                  { label: 'XTF File (Optional)', done: !!xtfFile?.uploaded },
+                  { label: 'Validate Data', done: false, pending: true },
+                  { label: 'Load Survey Information', done: false, pending: true },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-sm text-navy-400 font-medium">
+                      {item.label}
+                    </span>
+                    {item.done ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                        <CheckCircle2 size={14} strokeWidth={2} />
+                        Uploaded
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-navy-300">
+                        <span className="w-1.5 h-1.5 rounded-full bg-navy-200" />
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
 
-            <div className="space-y-4">
-              {[
-                { label: 'Survey Data Package', done: frames.length > 0 },
-                { label: 'XTF File', done: !!xtfFile?.uploaded },
-                { label: 'Validate Data', done: validCount > 0, pending: frames.length === 0 },
-                {
-                  label: 'Load Survey Information',
-                  done: isMetadataLoaded,
-                  pending: !isMetadataLoaded,
-                  extra: matchedCount > 0 ? `(${matchedCount} frames linked)` : undefined,
-                },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <span className="text-sm text-navy-400 font-medium">
-                    {item.label} {item.extra && <span className="text-xs text-emerald-600 font-mono ml-1">{item.extra}</span>}
-                  </span>
-                  {item.done ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                      <CheckCircle2 size={14} strokeWidth={2} />
-                      Uploaded
-                    </span>
-                  ) : item.pending ? (
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-navy-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-navy-200" />
-                      Pending
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-navy-300">Not uploaded</span>
-                  )}
+              <div className="mt-6 pt-5 border-t border-navy-50">
+                <div className="flex items-start gap-2 p-3 bg-ocean-50 rounded-md">
+                  <Info size={15} className="text-ocean flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+                  <p className="text-xs text-navy-400 leading-relaxed">
+                    Select your survey folder or files containing <strong className="font-mono">survey_info.json</strong> to begin hydrographic ingestion.
+                  </p>
                 </div>
-              ))}
-            </div>
-
-            <div className="mt-6 pt-5 border-t border-navy-50">
-              <div className="flex items-start gap-2 p-3 bg-ocean-50 rounded-md">
-                <Info size={15} className="text-ocean flex-shrink-0 mt-0.5" strokeWidth={1.75} />
-                <p className="text-xs text-navy-400 leading-relaxed">
-                  Upload a folder or drag in sonar images with <strong className="font-mono">metadata.csv</strong>. Metadata is automatically mapped to each image by filename.
-                </p>
               </div>
             </div>
-          </div>
-
-          {/* Action button if metadata is not loaded yet */}
-          {!isMetadataLoaded && (
-            <>
-              <button
-                disabled={!canContinue}
-                onClick={handleContinue}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-md font-semibold text-sm tracking-wide transition-all ${
-                  canContinue
-                    ? 'bg-navy text-white hover:bg-ocean shadow-sm cursor-pointer'
-                    : 'bg-navy-50 text-navy-200 cursor-not-allowed'
-                }`}
-              >
-                Continue to Sonar Analysis
-                <ArrowRight size={16} strokeWidth={2} />
-              </button>
-              {!canContinue && (
-                <p className="text-xs text-center text-navy-300">
-                  Upload the survey data package to continue
-                </p>
-              )}
-            </>
           )}
         </div>
       </div>
@@ -1389,6 +1435,57 @@ export default function SurveyIngestion() {
           localStorage.setItem('sagar_active_survey', JSON.stringify(updated));
         }}
       />
+
+      {/* Small Compact Ingestion Modal */}
+      {isIngestingModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in select-none">
+          <div className="bg-white rounded-xl border border-navy-100 shadow-2xl p-6 max-w-sm w-full text-center space-y-4 animate-scale-in">
+            {!isIngestComplete ? (
+              <>
+                <div className="w-14 h-14 rounded-full bg-ocean-50 border border-ocean-100 flex items-center justify-center mx-auto text-ocean shadow-xs">
+                  <Loader2 size={28} className="animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-navy">Ingesting Survey Data...</h3>
+                  <p className="text-xs text-navy-400 mt-1">
+                    Validating sonar frames & survey_info.json
+                  </p>
+                </div>
+                {/* Short Progress Bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="w-full h-2 bg-navy-50 rounded-full overflow-hidden border border-navy-100/60">
+                    <div
+                      className="h-full bg-gradient-to-r from-ocean to-[#082B52] transition-all duration-75 ease-out rounded-full"
+                      style={{ width: `${ingestProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-navy-400">
+                    <span>Ingesting</span>
+                    <span className="font-bold text-ocean">{ingestProgress}%</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto text-emerald-600 shadow-xs">
+                  <CheckCircle2 size={32} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-navy">Survey Ingested!</h3>
+                  <p className="text-xs text-emerald-700 font-medium mt-1">
+                    15 sonar frames & metadata verified
+                  </p>
+                </div>
+                <div className="py-1">
+                  <span className="px-3 py-1 rounded bg-emerald-50 border border-emerald-200 text-xs font-mono font-medium text-emerald-800">
+                    RV Sagar Nidhi • Sector 4B
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

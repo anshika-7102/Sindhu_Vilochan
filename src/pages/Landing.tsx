@@ -16,13 +16,13 @@ export default function Landing() {
       />
 
       <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-6 pt-[22vh] pb-24">
-        <div className="flex flex-col items-center text-center max-w-3xl animate-fade-in">
-          <h1 className="hero-wordmark mb-4">
-            <span className="text-navy">SAGAR</span>
-            <span className="text-ocean"> NETRA</span>
+        <div className="flex flex-col items-center text-center max-w-4xl animate-fade-in">
+          <h1 className="hero-wordmark mb-3.5 inline-flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1">
+            <span className="text-navy">SINDHU</span>
+            <span className="text-ocean">VILOCHAN</span>
           </h1>
 
-          <div className="text-sm md:text-base font-bold tracking-[0.3em] uppercase text-navy-900 mb-3 drop-shadow-sm">
+          <div className="text-xs md:text-sm font-bold tracking-[0.22em] uppercase text-navy-900 mb-3 drop-shadow-xs">
             Marine Debris Intelligence
           </div>
 
@@ -57,7 +57,7 @@ export default function Landing() {
 
       <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-3 bg-white/95 border-t border-navy-200/70 text-xs text-navy-900 font-bold">
         <div className="flex items-center gap-4">
-          <span className="tracking-wider">© 2026 SAGAR NETRA</span>
+          <span className="tracking-wider">© 2026 SINDHU VILOCHAN</span>
           <span className="w-px h-3 bg-navy-300" />
           <span className="tracking-wide">Indian Ocean Survey Program</span>
         </div>

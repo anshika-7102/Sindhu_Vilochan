@@ -17,11 +17,13 @@
 }
 
 @layer components {
+  .text-brand-sindhu,
   .text-brand-sagar {
     color: #082B52;
     font-weight: 700;
     letter-spacing: 0.06em;
   }
+  .text-brand-vilochan,
   .text-brand-netra {
     color: #0968B4;
     font-weight: 700;
@@ -54,12 +56,12 @@
     );
   }
   .hero-wordmark {
-    font-size: clamp(2.25rem, 5vw, 4rem);
-    font-weight: 700;
-    letter-spacing: 0.26em;
-    line-height: 1;
-    padding-left: 0.26em;
-    text-shadow: 0 1px 16px rgba(255, 255, 255, 0.45);
+    font-family: 'Montserrat', 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: clamp(2.25rem, 5.2vw, 3.85rem);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    line-height: 1.15;
+    text-shadow: 0 2px 20px rgba(255, 255, 255, 0.7), 0 1px 3px rgba(8, 43, 82, 0.08);
   }
 }
 

@@ -77,6 +77,8 @@ export interface LogMessage {
 
 interface PipelineContextType {
   pipelineState: 'idle' | 'running' | 'completed';
+  setPipelineState: React.Dispatch<React.SetStateAction<'idle' | 'running' | 'completed'>>;
+  completePipeline: () => void;
   currentStageIndex: number;
   progressPercent: number;
   logs: LogMessage[];
@@ -195,6 +197,19 @@ export const PipelineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addLog('FAST_FORWARD', 'Analysis simulation fast-forwarded to completion. All outputs active.', 'success');
   }, [addLog]);
 
+  // Complete pipeline directly (used after Sonar Analysis batch execution)
+  const completePipeline = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setProgressPercent(100);
+    setCurrentStageIndex(PIPELINE_STAGES.length - 1);
+    setPipelineState('completed');
+    setIsDatasetLoaded(true);
+    localStorage.setItem('sagar_pipeline_state', 'completed');
+    localStorage.setItem('sagar_pipeline_stage', '6');
+    localStorage.setItem('sagar_dataset_loaded', 'true');
+    localStorage.setItem('sagar_sonar_frames_processed', 'true');
+  }, []);
+
   // Reset pipeline back to start
   const resetPipeline = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -211,6 +226,7 @@ export const PipelineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.removeItem('sagar_sonar_images_list');
     localStorage.removeItem('sagar_active_survey');
     localStorage.removeItem('sagar_dataset_loaded');
+    localStorage.removeItem('sagar_sonar_frames_processed');
   }, []);
 
   useEffect(() => {
@@ -223,6 +239,8 @@ export const PipelineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     <PipelineContext.Provider
       value={{
         pipelineState,
+        setPipelineState,
+        completePipeline,
         currentStageIndex,
         progressPercent,
         logs,

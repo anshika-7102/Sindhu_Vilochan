@@ -202,7 +202,7 @@ export default function IngestedImagePreview({
             </div>
             <p className="text-xs text-slate-500 mt-0.5 font-mono flex items-center gap-2 truncate">
               <span className="truncate max-w-[360px] lg:max-w-[500px]">
-                Frame {String(selectedImageIndex + 1).padStart(2, '0')} of {String(images.length).padStart(2, '0')}: {currentImage.name} • {currentImage.size} • Swath: {currentImage.swathWidth || metadata.swath}
+                Frame {String(selectedImageIndex + 1).padStart(2, '0')} of {String(images.length).padStart(2, '0')}: {currentImage.displayName || `Image ${selectedImageIndex + 1}`} • {currentImage.size} • Swath: {currentImage.swathWidth || metadata.swath}
               </span>
               {currentImage.imageMetadata && Object.keys(currentImage.imageMetadata).length > 0 && (
                 <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex-shrink-0">
@@ -418,7 +418,7 @@ export default function IngestedImagePreview({
           </div>
           <div className="truncate max-w-[200px]">
             <span className="text-slate-400">Active Frame:</span>{' '}
-            <span className="font-mono text-slate-700 truncate">{currentImage.name}</span>
+            <span className="font-mono text-slate-700 truncate">{currentImage.displayName || `Image ${selectedImageIndex + 1}`}</span>
           </div>
           {currentImage.coordinates && (
             <div className="flex-shrink-0 hidden md:block">

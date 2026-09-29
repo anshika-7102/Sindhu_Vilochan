@@ -83,7 +83,7 @@ export default function AppLayout() {
           {isSwitchingLayer && (
             <div className="absolute inset-0 z-50 bg-mist/85 backdrop-blur-[2px] flex items-center justify-center animate-fade-in pointer-events-auto">
               <div className="bg-white border border-navy-100 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 flex flex-col items-center text-center">
-                {/* Sagar-Netra Ocean Spinner */}
+                {/* Sindhu Vilochan Ocean Spinner */}
                 <div className="relative w-12 h-12 mb-3.5">
                   <div className="w-12 h-12 rounded-full border-2 border-navy-100"></div>
                   <div className="w-12 h-12 rounded-full border-2 border-ocean border-t-transparent animate-spin absolute top-0 left-0"></div>

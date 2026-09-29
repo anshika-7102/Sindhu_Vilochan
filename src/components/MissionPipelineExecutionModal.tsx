@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
-  FastForward,
   CheckCircle2,
   Terminal,
   Activity,
@@ -26,7 +25,6 @@ export default function MissionPipelineExecutionModal() {
     logs,
     isModalOpen,
     setIsModalOpen,
-    skipPipeline,
   } = usePipeline();
 
   const [logFilter, setLogFilter] = useState<'all' | 'process' | 'success' | 'warn'>('all');
@@ -114,7 +112,7 @@ export default function MissionPipelineExecutionModal() {
                   Sonar Processing Pipeline
                 </h3>
                 <span className="text-[11px] text-slate-300 font-medium border-l border-slate-600 pl-3">
-                  SAGAR NETRA • Indian Ocean Survey Program
+                  SINDHU VILOCHAN • Indian Ocean Survey Program
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded-xs text-[10px] font-bold tracking-wider uppercase border ${
@@ -133,16 +131,6 @@ export default function MissionPipelineExecutionModal() {
           </div>
 
           <div className="flex items-center gap-2">
-            {!isCompleted && (
-              <button
-                onClick={skipPipeline}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/20 transition-colors cursor-pointer"
-                title="Fast-forward processing"
-              >
-                <FastForward size={14} />
-                <span>Fast-Forward</span>
-              </button>
-            )}
             <button
               onClick={() => setIsModalOpen(false)}
               className="p-1.5 rounded-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
@@ -489,12 +477,10 @@ export default function MissionPipelineExecutionModal() {
                 </button>
               </>
             ) : (
-              <button
-                onClick={skipPipeline}
-                className="w-full sm:w-auto px-5 py-2 rounded-xs bg-[#082B52] hover:bg-[#051c37] text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Fast-Forward
-              </button>
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xs bg-slate-200/70 border border-slate-300 text-slate-700 text-xs font-semibold">
+                <Loader2 size={13} className="animate-spin text-[#082B52]" />
+                <span>Processing Survey Telemetry Stream...</span>
+              </div>
             )}
           </div>
         </div>

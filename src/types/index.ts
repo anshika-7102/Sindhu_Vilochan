@@ -110,6 +110,7 @@ export interface IngestedImage {
   id: string;
   url: string;
   name: string;
+  displayName?: string;
   size: string;
   sizeBytes?: number;
   dimensions?: { width: number; height: number };

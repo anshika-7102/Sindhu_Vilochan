@@ -164,9 +164,9 @@ export default function FrameThumbnailGrid({
                   {/* Filename */}
                   <div
                     className="text-xs font-semibold text-navy font-mono truncate"
-                    title={frame.name}
+                    title={frame.displayName || `Image ${frame.frameNumber}`}
                   >
-                    {frame.name}
+                    {frame.displayName || `Image ${frame.frameNumber}`}
                   </div>
 
                   {/* Dimensions and File Size */}

@@ -58,7 +58,7 @@ export default function FrameDetailModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-800 font-mono">
-                  {frame.name}
+                  {frame.displayName || `Image ${frame.frameNumber}`}
                 </h3>
                 {frame.status === 'Valid' && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1">

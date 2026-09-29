@@ -5,6 +5,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        noto: ['"Noto Sans"', 'sans-serif'],
+        montserrat: ['"Montserrat"', 'sans-serif'],
+        outfit: ['"Outfit"', 'sans-serif'],
+        display: ['"Montserrat"', '"Outfit"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
         navy: {

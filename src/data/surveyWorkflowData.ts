@@ -21,7 +21,8 @@ export interface ReviewCandidate {
     acousticShadow?: 'Yes' | 'No' | 'Unclear';
     naturalSimilarity: 'Low' | 'Medium' | 'High';
   };
-  decision?: 'confirmed' | 'natural' | 'false-positive' | 'needs-review' | null;
+  decision?: 'confirmed' | 'natural' | 'false-positive' | 'further-review' | 'needs-review' | null;
+  confirmedClass?: string;
   notes?: string;
 }
 
@@ -62,7 +63,7 @@ export interface ReviewedDetectionRow {
   imageId: string;
   classType: string;
   confidence: number;
-  status: 'Confirmed' | 'Marked';
+  status: 'Confirmed' | 'Marked' | 'Human Confirmed' | 'Natural Formation' | 'False Positive' | 'Under Review' | string;
   location: string;
   hotspot: string;
   priority: 'High' | 'Medium' | 'Low';
@@ -73,7 +74,7 @@ export interface ReviewedDetectionRow {
 export const INITIAL_REVIEW_CANDIDATES: ReviewCandidate[] = [
   {
     id: 'cand-human',
-    displayId: 'human.png',
+    displayId: 'Image 3',
     name: 'human.png',
     candidateType: 'Anthropogenic Anomaly',
     source: 'PatchCore Unsupervised Engine',
@@ -109,7 +110,7 @@ export const SURVEY_HOTSPOTS: HotspotItem[] = [
     coordinates: { x: 28, y: 32 },
     radius: 46,
     detectionsCount: 7,
-    dominantTypes: 'Ghost net, Tyre',
+    dominantTypes: 'Ghost net',
     priority: 'High',
     pins: [
       { id: 'pin-1', lat: 12.3462, lng: 72.9872, type: 'confirmed' },
@@ -131,8 +132,8 @@ export const SURVEY_HOTSPOTS: HotspotItem[] = [
       },
       {
         id: 'p-2',
-        label: 'Tyre',
-        className: 'Crab-Pot / Tyre',
+        label: 'Crab-Pot',
+        className: 'Crab-Pot ',
         confidence: 0.81,
         boxColor: 'blue',
         rawUrl: '/raw/crabpot.jpg',
@@ -352,8 +353,8 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
   {
     index: 2,
     imageId: 'DET-002',
-    classType: 'Ghost net',
-    confidence: 0.92,
+    classType: 'Ghost Net',
+    confidence: 0.98,
     reliability: 89,
     status: 'Confirmed',
     location: '12.3462, 72.9872',
@@ -374,8 +375,8 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
   {
     index: 4,
     imageId: 'DET-004',
-    classType: 'Crab-pot / Tyre',
-    confidence: 0.81,
+    classType: 'Crab Pot',
+    confidence: 0.96,
     reliability: 83,
     status: 'Confirmed',
     location: '12.3452, 72.9881',
@@ -386,7 +387,7 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
     index: 5,
     imageId: 'DET-005',
     classType: 'Anthropogenic Anomaly',
-    confidence: 0.89,
+    confidence: 0.91,
     reliability: 76,
     status: 'Confirmed',
     location: '12.3441, 72.9870',
@@ -397,7 +398,7 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
     index: 6,
     imageId: 'DET-006',
     classType: 'Pipe',
-    confidence: 0.96,
+    confidence: 0.97,
     reliability: 94,
     status: 'Confirmed',
     location: '12.3418, 72.9726',
@@ -407,8 +408,8 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
   {
     index: 7,
     imageId: 'DET-007',
-    classType: 'Pipe',
-    confidence: 0.95,
+    classType: 'Shipwreck',
+    confidence: 0.97,
     reliability: 92,
     status: 'Confirmed',
     location: '12.3420, 72.9735',
@@ -419,7 +420,7 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
     index: 8,
     imageId: 'DET-008',
     classType: 'Plane',
-    confidence: 0.97,
+    confidence: 0.98,
     reliability: 97,
     status: 'Confirmed',
     location: '12.3407, 72.9715',
@@ -429,7 +430,7 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
   {
     index: 9,
     imageId: 'DET-009',
-    classType: 'Crab-pot / Tyre',
+    classType: 'Crab Pot',
     confidence: 0.95,
     reliability: 91,
     status: 'Confirmed',
@@ -441,7 +442,7 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
     index: 10,
     imageId: 'DET-010',
     classType: 'Shipwreck',
-    confidence: 0.91,
+    confidence: 0.96,
     reliability: 88,
     status: 'Confirmed',
     location: '12.3592, 72.9951',
@@ -452,21 +453,10 @@ export const REVIEWED_DETECTIONS_TABLE: ReviewedDetectionRow[] = [
     index: 11,
     imageId: 'DET-011',
     classType: 'Plane',
-    confidence: 0.94,
+    confidence: 0.95,
     reliability: 93,
     status: 'Confirmed',
     location: '12.3301, 72.9810',
-    hotspot: 'H-4',
-    priority: 'Medium',
-  },
-  {
-    index: 12,
-    imageId: 'DET-012',
-    classType: 'Ghost net',
-    confidence: 0.89,
-    reliability: 86,
-    status: 'Confirmed',
-    location: '12.3312, 72.9819',
     hotspot: 'H-4',
     priority: 'Medium',
   },

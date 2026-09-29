@@ -9,13 +9,11 @@ import DebrisHotspots from '@/pages/DebrisHotspots';
 import Reports from '@/pages/Reports';
 import MissionReportPrint from '@/pages/MissionReportPrint';
 import { PipelineProvider } from '@/context/PipelineContext';
-import MissionPipelineExecutionModal from '@/components/MissionPipelineExecutionModal';
 
 function App() {
   return (
     <PipelineProvider>
       <BrowserRouter>
-        <MissionPipelineExecutionModal />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/print-report" element={<MissionReportPrint />} />

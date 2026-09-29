@@ -23,9 +23,10 @@ export default function DebrisHotspotMap({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  // Default survey center (off southwest coast of India / Arabian Sea)
-  const centerLat = 12.3456;
-  const centerLng = 72.9876;
+  // Default survey overview center (Arabian Sea off southwest coast of India)
+  const defaultCenterLat = 14.0;
+  const defaultCenterLng = 72.8;
+  const defaultZoom = 6;
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -34,8 +35,8 @@ export default function DebrisHotspotMap({
 
     // Create Map
     const map = L.map(mapContainerRef.current, {
-      center: [centerLat, centerLng],
-      zoom: 13,
+      center: [defaultCenterLat, defaultCenterLng],
+      zoom: defaultZoom,
       zoomControl: false, // custom zoom buttons matching mockup
       attributionControl: false, // clean presentation
     });
@@ -224,14 +225,7 @@ export default function DebrisHotspotMap({
   };
 
   const handleRecenter = () => {
-    const selectedSpot = hotspots.find((h) => h.id === selectedHotspotId);
-    if (selectedSpot && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([selectedSpot.lat, selectedSpot.lng], 14, {
-        duration: 1.2,
-      });
-    } else {
-      mapInstanceRef.current?.flyTo([centerLat, centerLng], 13, { duration: 1.2 });
-    }
+    mapInstanceRef.current?.flyTo([defaultCenterLat, defaultCenterLng], defaultZoom, { duration: 1.2 });
   };
 
   return (

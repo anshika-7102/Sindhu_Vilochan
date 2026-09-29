@@ -32,7 +32,7 @@ export default function DebrisHotspots() {
 
   const [hotspots] = useState<HotspotItem[]>(SURVEY_HOTSPOTS);
   const [selectedHotspotId, setSelectedHotspotId] = useState<string>('h-1');
-  const [mapMode, setMapMode] = useState<'map' | 'satellite'>('satellite');
+  const [mapMode, setMapMode] = useState<'map' | 'satellite'>('map');
   const [inspectingItem, setInspectingItem] = useState<HotspotDetectionPreview | null>(null);
 
   const activeHotspot =
@@ -62,7 +62,7 @@ export default function DebrisHotspots() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-[1520px] mx-auto space-y-6 select-none">
+    <div className="pt-1 pb-6 px-6 md:px-8 max-w-[1520px] mx-auto space-y-3.5 select-none">
       {/* Target Inspection Modal */}
       {inspectingItem && (
         <div
@@ -126,15 +126,12 @@ export default function DebrisHotspots() {
       )}
 
       {/* Top Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-2 border-b border-navy-100/60">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-1.5 border-b border-navy-100/60">
         <div>
-          <div className="text-[11px] font-bold tracking-widest text-ocean font-mono mb-0.5">
-            STEP 05 / 06
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-navy tracking-tight">
+          <h1 className="text-xl md:text-2xl font-bold text-navy tracking-tight">
             Debris Hotspots
           </h1>
-          <p className="text-sm text-navy-400 max-w-3xl mt-1">
+          <p className="text-xs text-navy-400 max-w-3xl mt-0.5">
             Spatial density clustering (DBSCAN &epsilon;=450m, MinPts=3) synthesizing detections from Layers 01–04 to designate priority intervention zones.
           </p>
         </div>

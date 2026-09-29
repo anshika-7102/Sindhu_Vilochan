@@ -13,17 +13,85 @@ import {
   Layers,
   Cpu,
   Sparkles,
+  UserCheck,
+  MessageSquare,
 } from 'lucide-react';
 import {
   REVIEWED_DETECTIONS_TABLE,
   SURVEY_HOTSPOTS,
+  INITIAL_REVIEW_CANDIDATES,
+  ReviewCandidate,
 } from '@/data/surveyWorkflowData';
 import { OBSERVABILITY_METRICS_MAP } from '@/data/sonarAnalysisData';
 
+const STORAGE_KEY = 'sagar_human_review_candidates_v5';
+
 export default function MissionReportPrint() {
   useEffect(() => {
-    document.title = 'SAGAR_NETRA_SURVEY_REPORT_SN2026-09.pdf';
+    document.title = 'SINDHU_VILOCHAN_SURVEY_REPORT_SV2026-09.pdf';
   }, []);
+
+  // Load human review candidate directly from Layer 04 LocalStorage
+  const humanCandidate: ReviewCandidate = (() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          (parsed[0].name === 'human.png' || parsed[0].id === 'cand-human')
+        ) {
+          return parsed[0];
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load review candidate in Print report:', e);
+    }
+    return INITIAL_REVIEW_CANDIDATES[0];
+  })();
+
+  const detectionsTable = REVIEWED_DETECTIONS_TABLE.map((d) => {
+    if (d.imageId === 'DET-005') {
+      let status = 'Confirmed';
+      let classType = 'Anthropogenic Anomaly';
+      let priority = 'High' as 'High' | 'Medium' | 'Low';
+      let reliability = 88;
+
+      if (humanCandidate.decision === 'confirmed') {
+        status = 'Human Confirmed';
+        classType = humanCandidate.confirmedClass
+          ? `Confirmed Debris (${humanCandidate.confirmedClass})`
+          : 'Anthropogenic Debris (Verified)';
+        priority = 'High';
+        reliability = 95;
+      } else if (humanCandidate.decision === 'natural') {
+        status = 'Natural Formation';
+        classType = 'Natural Rock / Outcrop';
+        priority = 'Low';
+        reliability = 92;
+      } else if (humanCandidate.decision === 'further-review' || humanCandidate.decision === 'false-positive') {
+        status = 'Further Review';
+        classType = 'Further Review (Multi-Aspect)';
+        priority = 'Medium';
+        reliability = 85;
+      } else {
+        status = 'Under Review';
+        classType = 'Anthropogenic Anomaly (HITL)';
+        priority = 'High';
+        reliability = 78;
+      }
+
+      return {
+        ...d,
+        status,
+        classType,
+        priority,
+        reliability,
+      };
+    }
+    return d;
+  });
 
   // Compute observability aggregate across all 15 survey images
   const obsValues = Object.values(OBSERVABILITY_METRICS_MAP);
@@ -66,6 +134,7 @@ export default function MissionReportPrint() {
     <div className="min-h-screen bg-slate-200 text-slate-900 font-sans print:bg-white print:text-black">
       {/* Print Specific CSS Embedded */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800&display=swap');
         @page {
           size: A4 portrait;
           margin: 8mm 10mm 8mm 10mm;
@@ -102,38 +171,38 @@ export default function MissionReportPrint() {
       `}</style>
 
       {/* Top Floating Action Bar (Hidden during Print) */}
-      <header className="sticky top-0 z-50 bg-slate-900 text-white px-6 py-3 shadow-xl border-b border-slate-800 print:hidden flex flex-wrap items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 bg-white text-navy px-6 py-3 shadow-xs border-b border-navy-100 print:hidden flex flex-wrap items-center justify-between gap-3 font-sans">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center">
-            <FileText size={18} />
+          <div className="w-8 h-8 rounded-lg bg-ocean-50 text-ocean border border-ocean-100 flex items-center justify-center">
+            <FileText size={17} strokeWidth={2} />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-tight flex items-center gap-2">
-              <span>Sagar-Netra • Hydrographic Mission Dossier</span>
-              <span className="text-[10px] font-mono bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded border border-teal-500/30 font-semibold">
+            <div className="text-sm font-bold text-navy tracking-tight flex items-center gap-2">
+              <span>Sindhu Vilochan • Hydrographic Mission Dossier</span>
+              <span className="text-[11px] font-medium bg-ocean-50 text-ocean-700 px-2 py-0.5 rounded border border-ocean-200">
                 Clean 2-Page A4 Optimized
               </span>
             </div>
-            <div className="text-xs text-slate-400 font-mono">
-              Mission Ref: SAGAR-NETRA-SN2026-09 • Western Arabian Sea Sector 4B
+            <div className="text-xs text-navy-400 font-medium mt-0.5">
+              Mission Ref: SINDHU-VILOCHAN-SV2026-09 • Western Arabian Sea Sector 4B
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
-            💡 Tip: Ensure <strong className="text-teal-300">"Background graphics"</strong> is checked in browser print dialog
+          <span className="text-xs text-navy-500 font-medium hidden md:inline">
+            💡 Tip: Ensure <strong className="text-ocean-700 font-semibold">"Background graphics"</strong> is checked in browser print dialog
           </span>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold transition-all shadow-md cursor-pointer hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-ocean hover:bg-ocean-600 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer hover:scale-105 active:scale-95"
           >
             <Printer size={15} />
             <span>Download PDF / Print</span>
           </button>
           <button
             onClick={handleClose}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-navy-200 bg-white hover:bg-slate-50 text-navy-600 hover:text-navy text-xs font-medium transition-colors cursor-pointer"
           >
             <X size={15} />
             <span>Close</span>
@@ -159,7 +228,7 @@ export default function MissionReportPrint() {
                     <span>NIOT</span>
                   </div>
                   <h1 className="text-2xl font-black text-slate-950 tracking-tight mt-0.5">
-                    SAGAR NETRA • HYDROGRAPHIC SURVEY REPORT
+                    SINDHU VILOCHAN • HYDROGRAPHIC SURVEY REPORT
                   </h1>
                   <p className="text-[11px] text-slate-600 mt-0.5 max-w-xl leading-tight">
                     Side-Scan Sonar Telemetry, Survey Reliability Index, Multi-Modal Evidence Fusion, & DBSCAN Hotspots Manifest.
@@ -181,22 +250,22 @@ export default function MissionReportPrint() {
               </div>
 
               {/* Survey Metadata Bar */}
-              <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-200 text-[10px] font-mono">
+              <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-200 text-[10px] font-noto font-['Noto_Sans',sans-serif]">
                 <div>
-                  <span className="text-slate-400 block">SECTOR</span>
-                  <span className="font-bold text-slate-800">W. Arabian Sea (4B)</span>
+                  <span className="text-slate-400 block font-medium font-noto font-['Noto_Sans',sans-serif]">SECTOR</span>
+                  <span className="font-bold text-slate-800 font-noto font-['Noto_Sans',sans-serif]">W. Arabian Sea (4B)</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">SENSOR</span>
-                  <span className="font-bold text-slate-800">EdgeTech 4200 (455/900 kHz)</span>
+                  <span className="text-slate-400 block font-medium font-noto font-['Noto_Sans',sans-serif]">SENSOR</span>
+                  <span className="font-bold text-slate-800 font-noto font-['Noto_Sans',sans-serif]">EdgeTech 4200 (455/900 kHz)</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">SURVEY WINDOW</span>
-                  <span className="font-bold text-slate-800">12–19 Sept 2026</span>
+                  <span className="text-slate-400 block font-medium font-noto font-['Noto_Sans',sans-serif]">SURVEY WINDOW</span>
+                  <span className="font-bold text-slate-800 font-noto font-['Noto_Sans',sans-serif]">12–19 Sept 2026</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">SWATHS PROCESSED</span>
-                  <span className="font-bold text-slate-800">15 Acoustic Frames</span>
+                  <span className="text-slate-400 block font-medium font-noto font-['Noto_Sans',sans-serif]">SWATHS PROCESSED</span>
+                  <span className="font-bold text-slate-800 font-noto font-['Noto_Sans',sans-serif]">15 Acoustic Frames</span>
                 </div>
               </div>
             </div>
@@ -210,7 +279,7 @@ export default function MissionReportPrint() {
               </div>
               <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-center">
                 <div className="text-[10px] text-slate-500 uppercase font-mono">Verified Contacts</div>
-                <div className="text-xl font-black font-mono text-slate-900 mt-0.5">12</div>
+                <div className="text-xl font-black font-mono text-slate-900 mt-0.5">{detectionsTable.length}</div>
                 <div className="text-[9px] text-slate-500">Classified contacts</div>
               </div>
               <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-center">
@@ -337,7 +406,7 @@ export default function MissionReportPrint() {
 
           {/* Page 1 Footer */}
           <div className="pt-3 border-t border-slate-300 flex items-center justify-between text-[9px] font-mono text-slate-400">
-            <span>Sagar-Netra • Indian Ocean Hydrographic Survey Operations • Sector 4B</span>
+            <span>Sindhu Vilochan • Indian Ocean Hydrographic Survey Operations • Sector 4B</span>
             <span>Page 1 of 2</span>
           </div>
         </div>
@@ -379,10 +448,17 @@ export default function MissionReportPrint() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 font-mono text-slate-800">
-                  {REVIEWED_DETECTIONS_TABLE.map((row) => (
+                  {detectionsTable.map((row) => (
                     <tr key={row.index} className="hover:bg-slate-50">
                       <td className="py-1.5 px-2.5 font-bold text-slate-950">{row.imageId}</td>
-                      <td className="py-1.5 px-2.5 font-semibold text-slate-900 font-sans">{row.classType}</td>
+                      <td className="py-1.5 px-2.5 font-semibold text-slate-900 font-sans">
+                        <div>{row.classType}</div>
+                        {row.imageId === 'DET-005' && (
+                          <div className="text-[8px] font-mono text-teal-700 font-normal">
+                            HITL Note Logged
+                          </div>
+                        )}
+                      </td>
                       <td className="py-1.5 px-1.5 text-center">{(row.confidence * 100).toFixed(0)}%</td>
                       <td className="py-1.5 px-1.5 text-center text-slate-600">
                         {row.classType.toLowerCase().includes('net') ? 'N/A' : '0.91'}
@@ -411,31 +487,94 @@ export default function MissionReportPrint() {
               </table>
             </div>
 
-            {/* Section 4: Adaptive Evidence Fusion Formulation */}
-            <div className="mb-4 p-3.5 rounded-lg border border-slate-300 bg-slate-50 avoid-break">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-700">
-                  4. Adaptive Multi-Modal Evidence Fusion Mathematical Formulation
-                </span>
-                <span className="text-[9px] font-mono text-teal-800 font-bold bg-teal-100 px-1.5 py-0.2 rounded">
-                  SIH 26057 Specification
-                </span>
+            {/* Section 4: Human-in-the-Loop Anomaly Verification & Multi-Modal Fusion */}
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3 avoid-break">
+              {/* 4A: HITL Operator Verification & Field Notes */}
+              <div className="p-3 rounded-lg border border-slate-300 bg-slate-50 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase text-slate-800 flex items-center gap-1.5">
+                      <UserCheck size={12} className="text-teal-700" />
+                      4A. HITL Operator Verification & Notes
+                    </span>
+                    <span className="text-[8px] font-mono text-teal-800 font-bold bg-teal-100 px-1.5 py-0.2 rounded border border-teal-200">
+                      Layer 04 Ground Truth
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <img
+                      src="/unknown/human.png"
+                      alt="Target ANO-001"
+                      className="w-12 h-10 object-cover rounded border border-slate-300 flex-shrink-0"
+                    />
+                    <div className="text-[9px] font-mono leading-tight">
+                      <div className="font-bold text-slate-950">
+                        Target ANO-001 (Image 3)
+                      </div>
+                      <div className="text-slate-500">
+                        {humanCandidate.coordinates} • Depth: {humanCandidate.depth}
+                      </div>
+                      <div className="font-semibold text-teal-800 mt-0.5">
+                        Status:{' '}
+                        {humanCandidate.decision === 'confirmed'
+                          ? (humanCandidate.confirmedClass ? `Confirmed Debris (${humanCandidate.confirmedClass})` : 'Confirmed Anthropogenic Debris')
+                          : humanCandidate.decision === 'natural'
+                          ? 'Confirmed Natural Formation'
+                          : humanCandidate.decision === 'further-review' || humanCandidate.decision === 'false-positive'
+                          ? 'Further Review (Awaiting Pass)'
+                          : 'Pending Field Operator Review'}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Operator Field Note */}
+                  <div className="p-2 rounded bg-white border border-slate-200 text-[9px] font-serif italic text-slate-800">
+                    <span className="font-mono not-italic font-bold text-slate-500 text-[8px] block uppercase mb-0.5">
+                      Analyst Field Observation Note:
+                    </span>
+                    "{humanCandidate.notes && humanCandidate.notes.trim() ? humanCandidate.notes : 'No custom field observations entered.'}"
+                  </div>
+                </div>
+                <div className="pt-1.5 mt-2 border-t border-slate-200 flex items-center justify-between text-[8px] font-mono text-slate-500">
+                  <span>Operator: QA-4402 (NIOT)</span>
+                  <span>Digital Signature: Validated</span>
+                </div>
               </div>
-              <div className="p-2 rounded bg-white border border-slate-200 font-mono text-xs text-slate-900 mb-2">
-                R_fusion = α · C_AI + β · S_shape + γ · S_shadow + δ · S_context
-              </div>
-              <div className="grid grid-cols-4 gap-2 text-[9px] font-mono text-slate-600">
-                <div className="p-1.5 bg-white rounded border border-slate-200">
-                  <strong>Pipe Profile:</strong> α=0.40, β=0.25, γ=0.20, δ=0.15
+
+              {/* 4B: Adaptive Multi-Modal Evidence Fusion Formulation */}
+              <div className="p-3 rounded-lg border border-slate-300 bg-slate-50 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase text-slate-800 flex items-center gap-1.5">
+                      <Activity size={12} className="text-teal-700" />
+                      4B. Multi-Modal Evidence Fusion Math
+                    </span>
+                    <span className="text-[8px] font-mono text-teal-800 font-bold bg-teal-100 px-1.5 py-0.2 rounded border border-teal-200">
+                      Sindhu Vilochan Specification
+                    </span>
+                  </div>
+                  <div className="p-1.5 rounded bg-white border border-slate-200 font-mono text-[10px] text-slate-900 mb-2">
+                    R_fusion = α · C_AI + β · S_shape + γ · S_shadow + δ · S_context
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[8px] font-mono text-slate-600">
+                    <div className="p-1 bg-white rounded border border-slate-200">
+                      <strong>Shipwreck:</strong> α=0.50, β=0.25, γ=0.15, δ=0.10
+                    </div>
+                    <div className="p-1 bg-white rounded border border-slate-200">
+                      <strong>Crab Pot:</strong> α=0.50, β=0.25, γ=0.20, δ=0.05
+                    </div>
+                    <div className="p-1 bg-white rounded border border-slate-200">
+                      <strong>Plane:</strong> α=0.50, β=0.25, γ=0.15, δ=0.10
+                    </div>
+                    <div className="p-1 bg-white rounded border border-slate-200">
+                      <strong>Pipe:</strong> α=0.50, β=0.30, γ=0.10, δ=0.10
+                    </div>
+                    <div className="p-1 bg-white rounded border border-slate-200 col-span-2">
+                      <strong>Ghost Net:</strong> α=0.50, β=0.10, γ=0.00, δ=0.40
+                    </div>
+                  </div>
                 </div>
-                <div className="p-1.5 bg-white rounded border border-slate-200">
-                  <strong>Aircraft/Wreck:</strong> α=0.40, β=0.25, γ=0.20, δ=0.15
-                </div>
-                <div className="p-1.5 bg-white rounded border border-slate-200">
-                  <strong>Ghostnet Gear:</strong> α=0.20, β=0.40, γ=0.00, δ=0.40
-                </div>
-                <div className="p-1.5 bg-white rounded border border-slate-200">
-                  <strong>Novel Anomaly:</strong> α=0.40, β=0.00, γ=0.00, δ=0.60
+                <div className="pt-1.5 mt-2 border-t border-slate-200 text-[8px] font-mono text-slate-500">
+                  Reliability matrix weighted per sonar sensor profile & grazing angle
                 </div>
               </div>
             </div>
@@ -472,7 +611,7 @@ export default function MissionReportPrint() {
 
           {/* Page 2 Footer */}
           <div className="pt-3 border-t border-slate-300 flex items-center justify-between text-[9px] font-mono text-slate-400">
-            <span>Sagar-Netra • Indian Ocean Hydrographic Survey Operations • Sector 4B</span>
+            <span>Sindhu Vilochan • Indian Ocean Hydrographic Survey Operations • Sector 4B</span>
             <span>Page 2 of 2 • End of Official Survey Dossier</span>
           </div>
         </div>
